@@ -28,10 +28,10 @@ def select_device(device,batch_size=0, newline=True):
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
         tf.config.experimental.set_memory_growth(physical_devices[int(device)], True)
-        tf.config.experimental.set_virtual_device_configuration(
-            physical_devices[int(device)],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=3000)]
-        )
+        # tf.config.experimental.set_virtual_device_configuration(
+        #     physical_devices[int(device)],
+        #     [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=3000)]
+        # )
         s += f'GPU:{device} '
     cuda = not cpu
     if cuda:
@@ -110,7 +110,7 @@ def delete_dir(dir_path):
         delete_batch_file(files_path)
 
 
-def parse_data(info_iter,save_intercls,save_dir_path,curr_defect_cam_num,class_ignore,score_ignore,curr_schema,debug):
+def parse_data(info_iter,save_intercls,save_dir_path,curr_defect_cam_num,class_ignore,score_ignore,curr_schema,debug,coldsteel=False):
     defect_infos = [[] for i in range(len(curr_defect_cam_num))]
     for infos in info_iter:
         img_path, img_roi, class_name, internal_no, external_no, score = infos
@@ -120,9 +120,16 @@ def parse_data(info_iter,save_intercls,save_dir_path,curr_defect_cam_num,class_i
                 img_x1, img_x2, img_y1, img_y2, \
                 steel_x1, steel_x2, steel_y1, steel_y2, _, _, _ = os.path.basename(img_path).split('_')
         else:
-            _, steel_no, cam_no, img_no, left_edge, right_edge, \
-            img_x1, img_x2, img_y1, img_y2, \
-            steel_x1, steel_x2, steel_y1, steel_y2, _, _, _ = os.path.basename(img_path).split('_')
+            if coldsteel:
+                _, steel_no, cam_no, img_no, left_edge, right_edge, \
+                img_x1, img_x2, img_y1, img_y2, \
+                steel_x1, steel_x2, steel_y1, steel_y2, _ = os.path.basename(img_path).split('_')
+            else:
+                _, steel_no, cam_no, img_no, \
+                img_x1, img_x2, img_y1, img_y2, \
+                steel_x1, steel_x2, steel_y1, steel_y2, left_to_edge, right_to_edge, _ = os.path.basename(img_path).split('_')
+                left_edge = int(img_x1)-int(left_to_edge)
+                right_edge = int(right_to_edge)+int(img_x2)
         fx = abs(int(steel_x2)-int(steel_x1))/abs(int(img_x2)-int(img_x1))
         fy = abs(int(steel_y2)-int(steel_y1))/abs(int(img_y2)-int(img_y1))
         # 保存内部编号的缺陷
@@ -138,7 +145,8 @@ def parse_data(info_iter,save_intercls,save_dir_path,curr_defect_cam_num,class_i
                     except Exception as E:
                         re_print(E)
                         time.sleep(0.1)
-            img_name = f'{class_name}_score({int(score)})_{os.path.basename(img_path)}'
+            # img_name = f'{class_name}_score({int(score)})_{os.path.basename(img_path)}'
+            img_name = f'{class_name}_{os.path.basename(img_path)}'
             new_path = os.path.join(savedir_intercls, img_name)
             img_roi_pil.save(new_path)
         # 需要写入数据库的类别

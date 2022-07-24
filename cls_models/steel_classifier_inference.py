@@ -98,7 +98,7 @@ def run(
                                                    op_log=logs_oper)
 
         img_size = classifier_model.imgsize
-        read_q = Queue(3)
+        read_q = Queue(8)
         # 数据线程
         th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
         th.start()
@@ -163,9 +163,16 @@ def thread_process_model_res(db_ip, db_user, db_psd,db_name,thread_obj,
             v4 = time.time()
             if debug:
                 num = 0
+                get_q_data += v2 - v1
+                get_model_res += v3 - v2
+                get_pro_res += v4 - v3
+                total_time += v4 - v1
                 for info in db_defects_info:
                     num += len(info)
                 re_print(f'当前队列剩余数量{index_q.qsize()} ,采用非数据库形式存储当前批次共{num}条信息: {db_defects_info}')
+                re_print(f'批次平均共耗时：{total_time / num_cur}s,读取{get_q_data / num_cur}s,推理{get_model_res / num_cur}s,FPS {num_total / (get_model_res+1e-10)},'
+                         f'存入共享加整理{get_pro_res / num_cur}s')
+                print('--' * 40)
             else:
                 v5 = time.time()
                 if schema_flag ==0:

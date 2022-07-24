@@ -1,5 +1,5 @@
 import time
-
+import tensorflow as tf
 import numpy as np
 from PIL import Image
 from cls_models.utils.get_file_info import ReadConvertFile
@@ -130,7 +130,8 @@ class ClassificationAlgorithm(ReadConvertFile):
 
         print(img_arr_bs.shape)
         if use_classifier:
-            results = self.model.predict(img_arr_bs, batch_size=img_arr_bs.shape[0])
+            results = np.array(self.model(img_arr_bs,training=False))
+            # results = self.model.predict(img_arr_bs,batch_size=img_arr_bs.shape[0])
             scores = results.max(axis=1).astype('float16') * 100
             inter_no = [self.index_and_inter[i] for i in results.argmax(axis=1)]
             cls_name = [self.inter_and_name[i] for i in inter_no]
