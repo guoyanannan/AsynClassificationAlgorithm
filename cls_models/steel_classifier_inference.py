@@ -3,10 +3,11 @@ import time
 import yaml
 import argparse
 import signal
-from threading import Thread
-from queue import Queue
+# from threading import Thread
+# from queue import Queue
+from multiprocessing import Process,Queue
 from cls_models.utils.get_file_info import LOGS
-from cls_models.utils.data_load import thread_load_data
+from cls_models.utils.data_load import load_data
 from cls_models.utils.db_mysql import get_camdefect_no,check_temp_db,get_dbop,write_defect_to_table
 from cls_models.utils.db_sqlserver import SqlSerOp
 from cls_models.steel_classifier_init import ClassificationAlgorithm
@@ -36,7 +37,7 @@ def run(
         transfers="{'db_name': 'temp', 'camera1': 'tempcam1', 'camera2': 'tempcam2'}",
         using="{'db_name': 'ncdcoldstripdefect', 'camera1': 'camdefect1', 'camera2': 'camdefect2'}",
         ):
-
+    pip_list = []
     logs_oper = LOGS(log_path)
     ss = select_device(device)
     logs_oper.info(ss)
@@ -98,16 +99,25 @@ def run(
                                                    op_log=logs_oper)
 
         img_size = classifier_model.imgsize
-        read_q = Queue(8)
+        # read_q = []
+        # for i in range(2):
+        #     read_q.append(Queue(10))
+        read_q = Queue(100)
+        # 数据进程
+        read_pro = Process(target=load_data,args=(read_q, rois_dir, bs, img_size, logs_oper),)
+        read_pro.start()
+        pip_list.append(read_pro)
+        logs_oper.info(f'process-{read_pro.pid} starting success')
         # 数据线程
-        th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
-        th.start()
+        # th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
+        # th.start()
+
 
         # 模型线程
-        thread_process_model_res(db_ip, db_user, db_psd,temp_db['db_name'],th,
-                                 read_q,classifier_model,save_intercls,offline_result,
-                                 defect_cam_num,negative,ignore,temp_tables,
-                                 curr_schema,logs_oper,debug,use_classifier)
+        # thread_process_model_res(db_ip, db_user, db_psd,temp_db['db_name'],th,
+        #                          read_q,classifier_model,save_intercls,offline_result,
+        #                          defect_cam_num,negative,ignore,temp_tables,
+        #                          curr_schema,logs_oper,debug,use_classifier)
 
     except Exception as E:
         logs_oper.info(E)

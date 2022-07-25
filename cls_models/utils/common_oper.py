@@ -17,8 +17,9 @@ def print_args(name, opt):
     logging.info(f'{name}: ' + ', '.join(f'{k}={v}' for k, v in vars(opt).items()))
 
 
-def select_device(device,batch_size=0, newline=True):
+def select_device(device,batch_size=0,limitmem=0,newline=True):
     # device = 'cpu' or '0' or '0,1,2,3'
+    # Limited memory
     s = f'classifier tensorflow {tf.__version__} '  # string
     device = str(device).strip().lower().replace('cuda:', '')  # to string, 'cuda:0' to '0'
     cpu = device == 'cpu'
@@ -28,10 +29,11 @@ def select_device(device,batch_size=0, newline=True):
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
         tf.config.experimental.set_memory_growth(physical_devices[int(device)], True)
-        # tf.config.experimental.set_virtual_device_configuration(
-        #     physical_devices[int(device)],
-        #     [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=3000)]
-        # )
+        if limitmem:
+            tf.config.experimental.set_virtual_device_configuration(
+                physical_devices[int(device)],
+                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=int(limitmem))]
+            )
         s += f'GPU:{device} '
     cuda = not cpu
     if cuda:

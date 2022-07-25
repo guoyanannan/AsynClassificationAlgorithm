@@ -68,7 +68,7 @@ classifier:
       camera1: 'camdefect1'
       camera2: 'camdefect2'
   infoParameter:
-    bs: 128
+    bs: 64
     # 数据库中为背景的类别ID(字段class:0)
     negative: 0
     # 忽略分数

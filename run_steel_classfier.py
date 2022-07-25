@@ -1,3 +1,4 @@
+from multiprocessing import freeze_support
 from cls_models.steel_classifier_inference import run, parse_opt
 
 
@@ -7,4 +8,5 @@ def main():
 
 
 if __name__ == '__main__':
+    freeze_support()
     main()
