@@ -98,7 +98,7 @@ def run(
                                                    op_log=logs_oper)
 
         img_size = classifier_model.imgsize
-        read_q = Queue(8)
+        read_q = Queue()
         # 数据线程
         th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
         th.start()
