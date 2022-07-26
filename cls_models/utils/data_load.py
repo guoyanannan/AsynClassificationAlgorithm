@@ -10,6 +10,10 @@ IMG = ['bmp', 'jpg', 'jpeg', 'png']
 
 def get_batch_images(read_q,files,bs,imsze,th_flag):
     num_bs = math.ceil(len(files) / bs)
+    th_total_time = 0
+    th_read_time = 0
+    th_write_time = 0
+    th_del_time = 0
     for i in range(num_bs):
         bs_time = time.time()
         image_path_list = []
@@ -50,8 +54,12 @@ def get_batch_images(read_q,files,bs,imsze,th_flag):
         bq_time = time.time()
         delete_batch_file(batch_img_path)
         br_time = time.time()
-        re_print(f'{}')
-
+        th_total_time += br_time-bs_time
+        th_read_time += be_time-bs_time
+        th_write_time += bq_time-be_time
+        th_del_time += br_time-bq_time
+    re_print(f'thread-{th_flag}:读取图片{len(files)}张,共耗时{th_total_time:.2f}s,FPS {(len(files)/(th_total_time+1e-10)):.2f},'
+             f'读耗时{th_read_time:.2f}s,写入队列耗时{th_write_time:.2f}s,删除耗时{th_del_time:.2f}s')
 
 
 def load_data(read_q,roi_dir_path,batch_size,img_size,logger):
@@ -59,6 +67,7 @@ def load_data(read_q,roi_dir_path,batch_size,img_size,logger):
     total_num = 0
     while True:
         try:
+            start_time = time.time()
             # file_name_list = sorted(os.listdir(rois_dir), key=lambda x: os.path.getmtime(os.path.join(rois_dir, x)))
             files_path = [os.path.join(roi_dir_path, fileName) for fileName in os.listdir(roi_dir_path) if fileName.rsplit('.', 1)[-1].lower() in IMG]
             if files_path:
@@ -74,13 +83,10 @@ def load_data(read_q,roi_dir_path,batch_size,img_size,logger):
                     del th_
                 del th_list
 
-                # be_time = time.time()
-                # total_time += be_time-bs_time
-                # total_num += len(batch_img_path)
-                # re_print(f'本批次读取{len(batch_img_path)}张图片，耗时{be_time-bs_time}s,FPS{len(batch_img_path)/(be_time-bs_time)+1e-10},'
-                #          f'平均FPS{total_num/total_time+1e-10}')
-
-
+                end_time = time.time()
+                total_time += end_time-start_time
+                total_num += len(files_path)
+                re_print(f'process-{os.getpid()} 当前读取{len(files_path)}张图片，耗时{(end_time-start_time):.2f}s，当前累计读取{total_num}张图片，平均FPS {(total_num/(total_time+1e-10)):.2f}')
         except Exception as E:
             logger.info(f'数据加载出现异常:{E}')
             raise

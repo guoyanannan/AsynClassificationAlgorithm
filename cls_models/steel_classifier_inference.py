@@ -46,88 +46,114 @@ def run(
             delete_dir(rois_dir)
         else:
             os.makedirs(rois_dir)
-    try:
-        curr_schema = eval(schema)
-        # 1 有算法测试程序 0 无算法测试程序
-        schema_flag = int(curr_schema['flag'])
-        if not schema_flag:
-            try:
-                cam_defect_dir = tuple([curr_schema[f'camera{i}'] for i in range(1, cam_num + 1)])
-            except Exception as E:
-                logs_oper.info(f'相机路径数量和相机数不一致，请检查参数 schema 和 cam_num 设置，Error:{E}')
-                raise
+    # try:
+    curr_schema = eval(schema)
+    # 1 有算法测试程序 0 无算法测试程序
+    schema_flag = int(curr_schema['flag'])
+    if not schema_flag:
+        try:
+            cam_defect_dir = tuple([curr_schema[f'camera{i}'] for i in range(1, cam_num + 1)])
+        except Exception as E:
+            logs_oper.info(f'相机路径数量和相机数不一致，请检查参数 schema 和 cam_num 设置，Error:{E}')
+            raise
 
-        if not debug and not schema_flag:
-            # 查看临时库和表是否存在，不存在就创建
-            temp_db = eval(transfers)
-            try:
-                temp_tables = tuple([temp_db[f'camera{i}'] for i in range(1,cam_num+1)])
-            except Exception as E:
-                logs_oper.info(f'临时表数量和相机数不一致，请检查参数 transfers 和 cam_num 设置，Error:{E}')
-                raise
-            check_temp_db(db_ip, db_user, db_psd, temp_db['db_name'], temp_tables,logs_oper)
-            # 查询临时表里面的缺陷数
-            temp_defect_no_info = get_camdefect_no(db_ip, db_user, db_psd, temp_db['db_name'], temp_tables,logs_oper)
-            # 查询正式表里面的缺陷数
-            use_db = eval(using)
-            try:
-                use_tables = tuple([use_db[f'camera{i}'] for i in range(1,cam_num+1)])
-            except Exception as E:
-                logs_oper.info(f'正式表数量和相机数不一致，请检查参数 using 和 cam_num 设置，Error:{E}')
-                raise
-            defect_no_info = get_camdefect_no(db_ip,db_user,db_psd,use_db['db_name'],use_tables,logs_oper)
-            # 以记录最大为开始计数
-            defect_cam_num = {}
-            for i in range(1,len(defect_no_info)+1):
-                defect_cam_num[str(i)] = max(temp_defect_no_info[str(i)],defect_no_info[str(i)])
-            logs_oper.info(f'程序启动时各相机缺陷数量{defect_cam_num}')
-        else:
-            temp_db = eval(transfers)
-            temp_tables = ()
-            use_db = eval(using)
-            use_tables=()
+    if not debug and not schema_flag:
+        # 查看临时库和表是否存在，不存在就创建
+        temp_db = eval(transfers)
+        try:
+            temp_tables = tuple([temp_db[f'camera{i}'] for i in range(1,cam_num+1)])
+        except Exception as E:
+            logs_oper.info(f'临时表数量和相机数不一致，请检查参数 transfers 和 cam_num 设置，Error:{E}')
+            raise
+        check_temp_db(db_ip, db_user, db_psd, temp_db['db_name'], temp_tables,logs_oper)
+        # 查询临时表里面的缺陷数
+        temp_defect_no_info = get_camdefect_no(db_ip, db_user, db_psd, temp_db['db_name'], temp_tables,logs_oper)
+        # 查询正式表里面的缺陷数
+        use_db = eval(using)
+        try:
+            use_tables = tuple([use_db[f'camera{i}'] for i in range(1,cam_num+1)])
+        except Exception as E:
+            logs_oper.info(f'正式表数量和相机数不一致，请检查参数 using 和 cam_num 设置，Error:{E}')
+            raise
+        defect_no_info = get_camdefect_no(db_ip,db_user,db_psd,use_db['db_name'],use_tables,logs_oper)
+        # 以记录最大为开始计数
+        defect_cam_num = {}
+        for i in range(1,len(defect_no_info)+1):
+            defect_cam_num[str(i)] = max(temp_defect_no_info[str(i)],defect_no_info[str(i)])
+        logs_oper.info(f'程序启动时各相机缺陷数量{defect_cam_num}')
+    else:
+        temp_db = eval(transfers)
+        temp_tables = ()
+        use_db = eval(using)
+        use_tables=()
 
-            defect_cam_num = {}
-            for i in range(1, cam_num+1):
-                defect_cam_num[str(i)] = 0
+        defect_cam_num = {}
+        for i in range(1, cam_num+1):
+            defect_cam_num[str(i)] = 0
 
-        classifier_model = ClassificationAlgorithm(xml_path=xml,
-                                                   ini_path=ini,
-                                                   batch_size=bs,
-                                                   model_path=weights,
-                                                   dynamic_size=dynamic_size,
-                                                   op_log=logs_oper)
+    # classifier_model = ClassificationAlgorithm(xml_path=xml,
+    #                                            ini_path=ini,
+    #                                            batch_size=bs,
+    #                                            model_path=weights,
+    #                                            dynamic_size=dynamic_size,
+    #                                            op_log=logs_oper)
 
-        img_size = classifier_model.imgsize
-        # read_q = []
-        # for i in range(2):
-        #     read_q.append(Queue(10))
-        read_q = Queue(100)
-        # 数据进程
-        read_pro = Process(target=load_data,args=(read_q, rois_dir, bs, img_size, logs_oper),)
-        read_pro.start()
-        pip_list.append(read_pro)
-        logs_oper.info(f'process-{read_pro.pid} starting success')
-        # 数据线程
-        # th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
-        # th.start()
+    # classifier_model_1 = ClassificationAlgorithm(xml_path=xml,
+    #                                              ini_path=ini,
+    #                                              batch_size=bs,
+    #                                              model_path=weights,
+    #                                              dynamic_size=dynamic_size,
+    #                                              op_log=logs_oper)
+
+    img_size = 300
+    # read_q = []
+    # for i in range(2):
+    #     read_q.append(Queue(10))
+    read_q = Queue()
+    # 数据进程
+    read_pro = Process(target=load_data,args=(read_q, rois_dir, bs, img_size, logs_oper),)
+    read_pro.start()
+    pip_list.append(read_pro)
+    logs_oper.info(f'process-{read_pro.pid} starting success')
+    # 数据线程
+    # th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
+    # th.start()
+
+    # 模型进程
+    model_pro = Process(target=thread_process_model_res,args=(db_ip, db_user, db_psd,temp_db['db_name'],
+                                                              xml, ini, bs, weights, dynamic_size,
+                                                              read_q,save_intercls,offline_result,
+                                                              defect_cam_num,negative,ignore,temp_tables,
+                                                              curr_schema,logs_oper,debug,use_classifier,))
+    # model_pro.start()
+    # pip_list.append(model_pro)
+    # logs_oper.info(f'process-{model_pro.pid} starting success')
+
+    # #模型线程
+    # thread_process_model_res(db_ip, db_user, db_psd,temp_db['db_name'],read_pro,
+    #                          read_q,classifier_model,save_intercls,offline_result,
+    #                          defect_cam_num,negative,ignore,temp_tables,
+    #                          curr_schema,logs_oper,debug,use_classifier)
+
+    # except Exception as E:
+    #     logs_oper.info(E)
+    #     os.kill(os.getpid(), signal.SIGINT)
 
 
-        # 模型线程
-        # thread_process_model_res(db_ip, db_user, db_psd,temp_db['db_name'],th,
-        #                          read_q,classifier_model,save_intercls,offline_result,
-        #                          defect_cam_num,negative,ignore,temp_tables,
-        #                          curr_schema,logs_oper,debug,use_classifier)
-
-    except Exception as E:
-        logs_oper.info(E)
-        os.kill(os.getpid(), signal.SIGINT)
-
-
-def thread_process_model_res(db_ip, db_user, db_psd,db_name,thread_obj,
-                             index_q,model,save_intercls,offline_result,
+def thread_process_model_res(db_ip, db_user, db_psd,db_name,
+                             xml,ini,bs,weights,dynamic_size,
+                             index_q,save_intercls,offline_result,
                              defect_cam_num,negative,ignore,temp_tables,
                              curr_schema,logger,debug,use_clsfier):
+
+    model = ClassificationAlgorithm(xml_path=xml,
+                                    ini_path=ini,
+                                    batch_size=bs,
+                                    model_path=weights,
+                                    dynamic_size=dynamic_size,
+                                    op_log=logger)
+
+
     total_time = 0
     get_q_data = 0
     get_model_res = 0
@@ -145,9 +171,6 @@ def thread_process_model_res(db_ip, db_user, db_psd,db_name,thread_obj,
         db_oper_.create_cam_procedure()
 
     while True:
-        if not thread_obj.isAlive():
-            logger.info(f'数据获取线程：{thread_obj.getName()} 出现异常，强制退出')
-            os.kill(os.getpid(), signal.SIGINT)
         if not debug and not schema_flag:
             db_oper_ = get_dbop(db_ip, db_user, db_psd, db_name, logger)
         if not index_q.empty():

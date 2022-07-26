@@ -73,8 +73,10 @@ classifier:
     negative: 0
     # 忽略分数
     score_ignore: 0
-    #相机数
+    # 相机数
     cam_num: 6
+    # 进程数量
+    pro_num: 3
     # 0.1.2.3 or cpu
     device: '0'
     dynamicsize: False
