@@ -110,11 +110,7 @@ def run(
     # for i in range(2):
     #     read_q.append(Queue(10))
     read_q = Queue()
-    # 数据进程
-    read_pro = Process(target=load_data,args=(read_q, rois_dir, bs, img_size, logs_oper),)
-    read_pro.start()
-    pip_list.append(read_pro)
-    logs_oper.info(f'process-{read_pro.pid} starting success')
+
     # 数据线程
     # th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
     # th.start()
@@ -125,10 +121,15 @@ def run(
                                                               read_q,save_intercls,offline_result,
                                                               defect_cam_num,negative,ignore,temp_tables,
                                                               curr_schema,logs_oper,debug,use_classifier,))
-    # model_pro.start()
-    # pip_list.append(model_pro)
-    # logs_oper.info(f'process-{model_pro.pid} starting success')
+    model_pro.start()
+    pip_list.append(model_pro)
+    logs_oper.info(f'process-{model_pro.pid} starting success')
 
+    # 数据进程
+    read_pro = Process(target=load_data, args=(read_q, rois_dir, bs, img_size, logs_oper), )
+    read_pro.start()
+    pip_list.append(read_pro)
+    logs_oper.info(f'process-{read_pro.pid} starting success')
     # #模型线程
     # thread_process_model_res(db_ip, db_user, db_psd,temp_db['db_name'],read_pro,
     #                          read_q,classifier_model,save_intercls,offline_result,
