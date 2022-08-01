@@ -174,7 +174,8 @@ def thread_process_model_res(db_ip, db_user, db_psd,db_name,thread_obj,
                 for info in db_defects_info:
                     num += len(info)
                 re_print(f'当前队列剩余数量{index_q.qsize()} ,采用非数据库形式存储当前批次共{num}条信息: {db_defects_info}')
-                re_print(f'thread-model:批次平均共耗时：{(total_time / num_cur):.2f}s,读取{(get_q_data / num_cur):.2f}s,推理{(get_model_res / num_cur):.2f}s,FPS {(num_total / (get_model_res+1e-10)):.2f},'
+                re_print(f'thread-model:批次平均共耗时：{(total_time / num_cur):.2f}s,读取{(get_q_data / num_cur):.2f}s,推理{(get_model_res / num_cur):.2f}s,'
+                         f'FPS {(num_total / (get_model_res+1e-10)):.2f} ({(num_total / (total_time+1e-10)):.2f}),'
                          f'存入共享加整理{(get_pro_res / num_cur):.2f}s')
                 print('--' * 40)
             else:
