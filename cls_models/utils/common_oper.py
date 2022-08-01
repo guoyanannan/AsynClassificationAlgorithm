@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import signal
 import platform
@@ -6,6 +7,29 @@ import logging
 import tensorflow as tf
 from PIL import Image
 
+
+def delete_temp(path):
+    time.sleep(600)
+    temp_path = path
+    while 1:
+        for file in os.listdir(temp_path):
+            file_path = os.path.join(temp_path, file)
+            # print(file_path)
+            if '_MEI' in file_path:
+                try:
+                    shutil.rmtree(file_path)
+                except Exception as E:
+                    # print(E)
+                    time.sleep(300)
+                    pass
+
+            if file.split('.')[-1] in ('log', 'py', 'dll'):
+                try:
+                    os.remove(file_path)
+                except Exception as E:
+                    # print(E)
+                    time.sleep(300)
+                    pass
 
 
 def re_print(info):
@@ -25,6 +49,7 @@ def select_device(device,batch_size=0, newline=True):
     if cpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # force torch.cuda.is_available() = False
     elif device:  # non-cpu device requested
+        os.environ['CUDA_VISIBLE_DEVICES'] = device
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
         tf.config.experimental.set_memory_growth(physical_devices[int(device)], True)

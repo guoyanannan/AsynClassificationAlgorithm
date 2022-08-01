@@ -10,7 +10,7 @@ from cls_models.utils.data_load import thread_load_data
 from cls_models.utils.db_mysql import get_camdefect_no,check_temp_db,get_dbop,write_defect_to_table
 from cls_models.utils.db_sqlserver import SqlSerOp
 from cls_models.steel_classifier_init import ClassificationAlgorithm
-from cls_models.utils.common_oper import select_device, select_no_img,parse_data,re_print,delete_dir
+from cls_models.utils.common_oper import select_device, delete_temp,parse_data,re_print,delete_dir
 
 
 def run(
@@ -26,6 +26,7 @@ def run(
         negative=0,
         ignore=50,
         cam_num=2,
+        qsize=3,
         device='0',
         dynamic_size=False,
         debug=False,
@@ -98,7 +99,10 @@ def run(
                                                    op_log=logs_oper)
 
         img_size = classifier_model.imgsize
-        read_q = Queue()
+        read_q = Queue(qsize)
+        # 删除临时文件夹
+        del_thread = Thread(target=delete_temp, args=(r'C:\Users\{}\AppData\Local\Temp'.format(os.getlogin()),))
+        del_thread.start()
         # 数据线程
         th = Thread(target=lambda: thread_load_data(read_q, rois_dir, bs, img_size, logs_oper),)
         th.start()
@@ -170,8 +174,8 @@ def thread_process_model_res(db_ip, db_user, db_psd,db_name,thread_obj,
                 for info in db_defects_info:
                     num += len(info)
                 re_print(f'当前队列剩余数量{index_q.qsize()} ,采用非数据库形式存储当前批次共{num}条信息: {db_defects_info}')
-                re_print(f'批次平均共耗时：{total_time / num_cur}s,读取{get_q_data / num_cur}s,推理{get_model_res / num_cur}s,FPS {num_total / (get_model_res+1e-10)},'
-                         f'存入共享加整理{get_pro_res / num_cur}s')
+                re_print(f'thread-model:批次平均共耗时：{(total_time / num_cur):.2f}s,读取{(get_q_data / num_cur):.2f}s,推理{(get_model_res / num_cur):.2f}s,FPS {(num_total / (get_model_res+1e-10)):.2f},'
+                         f'存入共享加整理{(get_pro_res / num_cur):.2f}s')
                 print('--' * 40)
             else:
                 v5 = time.time()
@@ -186,8 +190,9 @@ def thread_process_model_res(db_ip, db_user, db_psd,db_name,thread_obj,
                 write_tabel += v6 - v5
                 total_time += v6 - v1
                 re_print(
-                    f'当前队列剩余数量{index_q.qsize()} ,批次平均共耗时：{total_time / num_cur}s,读取{get_q_data / num_cur}s,推理{get_model_res / num_cur}s,FPS {num_total / (get_model_res+1e-10)}，'
-                    f'存入共享加整理{get_pro_res / num_cur}s, 数据库写入{write_tabel / num_cur}s')
+                    f'thread-model:当前队列剩余数量{index_q.qsize()} ,当前处理总耗时：{(total_time / num_cur):.2f}s,读取{(get_q_data / num_cur):.2f}s,'
+                    f'推理{(get_model_res / num_cur):.2f}s,FPS {(num_total / (get_model_res+1e-10)):.2f}，'
+                    f'存入共享加整理{(get_pro_res / num_cur):.2f}s, 数据库写入{(write_tabel / num_cur):.2f}s')
                 print('--' * 40)
         else:
             if bool(db_oper_):
@@ -220,6 +225,7 @@ def parse_opt():
     parser.add_argument('--negative', type=int, default=cls_config['infoParameter']['negative'], help='negative class')
     parser.add_argument('--ignore', type=int, default=cls_config['infoParameter']['score_ignore'], help='class threshold')
     parser.add_argument('--cam_num', type=int, default=cls_config['infoParameter']['cam_num'], help='number of camera')
+    parser.add_argument('--qsize', type=int, default=cls_config['infoParameter']['q_size'], help='len of queue')
     parser.add_argument('--device', type=str, default=cls_config['infoParameter']['device'], help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--dynamic_size', action='store_true', default=cls_config['infoParameter']['dynamicsize'],help='use dynamic Size to inference')
     parser.add_argument('--debug', action='store_true', default=cls_config['infoParameter']['debug'], help='is or not debug mode')
